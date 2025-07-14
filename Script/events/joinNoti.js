@@ -1,9 +1,9 @@
 module.exports.config = {
     name: "joinNoti",
     eventType: ["log:subscribe"],
-    version: "1.0.3",
+    version: "1.0.5",
     credits: "Laden Shakhe",
-    description: "Welcome message mentioning new member, adder, and group name",
+    description: "Welcome message with member count, adder, group name, and mentions",
     dependencies: {}
 };
 
@@ -11,34 +11,34 @@ module.exports.run = async function({ api, event }) {
     const { threadID, logMessageData, author } = event;
 
     try {
-        let newMemberNames = [];
-        let mentions = [];
+        const threadInfo = await api.getThreadInfo(threadID);
+        const threadName = threadInfo.threadName || "Unnamed Group";
+        const totalMembers = threadInfo.participantIDs.length;
 
-        // নতুন মেম্বারদের নাম ও মেনশন
-        for (let participant of logMessageData.addedParticipants) {
-            newMemberNames.push(participant.fullName);
-            mentions.push({ tag: participant.fullName, id: participant.userFbId });
-        }
-
-        // যে অ্যাড করেছে তার ইনফো
         const userInfo = await api.getUserInfo(author);
         const adderName = userInfo[author].name;
-        mentions.push({ tag: adderName, id: author });
+        const adderMention = { tag: adderName, id: author };
 
-        // গ্রুপের ইনফো
-        const threadInfo = await api.getThreadInfo(threadID);
-        const threadName = threadInfo.threadName || "This Group";
+        let newMembersText = '';
+        let mentions = [adderMention];
 
-        // ফাইনাল মেসেজ
-        const message = `🥰 𝙰𝚂𝚂𝙰𝙻𝙰𝙼𝚄𝙰𝙻𝙰𝙸𝙺𝚄𝙼 @${newMemberNames.join(', ')} 👋
+        for (const participant of logMessageData.addedParticipants) {
+            newMembersText += `${participant.fullName}, `;
+            mentions.push({ tag: participant.fullName, id: participant.userFbId });
+        }
+        newMembersText = newMembersText.replace(/,\s*$/, '');
 
-𝚆𝚎𝚕𝚌𝚘𝚖𝚎 𝚃𝚘 𝙾𝚞𝚛 𝙶𝚛𝚘𝚞𝚙: 『 ${threadName} 』😊
+        const message = `🥰 𝙰𝚂𝚂𝙰𝙻𝙰𝙼𝚄 𝙰𝙻𝙰𝙸𝙺𝚄𝙼 @${newMembersText} 👋
 
-• 𝙸 𝙷𝚘𝚙𝚎 𝚈𝚘𝚞 𝚆𝚒𝚕𝚕 𝙵𝚘𝚕𝚕𝚘𝚠 𝙶𝚛𝚘𝚞𝚙 𝚁𝚞𝚕𝚎𝚜
-• !rules — 𝙵𝚘𝚛 𝙶𝚛𝚘𝚞𝚙 𝚁𝚞𝚕𝚎𝚜
-• !help — 𝙵𝚘𝚛 𝙰𝚕𝚕 𝙲𝚘𝚖𝚖𝚊𝚗𝚍𝚜
+🎉 Welcome To Our Group: 『 ${threadName} 』😊
 
-🫰 𝙰𝚍𝚍𝚎𝚍 𝙱𝚢: @${adderName}`;
+📌 You are now our ${totalMembers}th member in the group!
+
+📌 Added By: @${adderName}
+
+📖 Please follow the group rules:
+• !rules — Group Rules
+• !help — All Commands`;
 
         return api.sendMessage({
             body: message,
@@ -46,6 +46,6 @@ module.exports.run = async function({ api, event }) {
         }, threadID);
 
     } catch (err) {
-        console.error(err);
+        console.error("Error in joinNoti:", err);
     }
 };
