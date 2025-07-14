@@ -1,41 +1,51 @@
 module.exports.config = {
     name: "joinNoti",
     eventType: ["log:subscribe"],
-    version: "1.0.1",
+    version: "1.0.3",
     credits: "Laden Shakhe",
-    description: "Welcome message when someone joins the group",
+    description: "Welcome message mentioning new member, adder, and group name",
     dependencies: {}
 };
 
 module.exports.run = async function({ api, event }) {
-    const { threadID } = event;
+    const { threadID, logMessageData, author } = event;
 
     try {
+        let newMemberNames = [];
         let mentions = [];
-        let nameArray = [];
-        for (let participant of event.logMessageData.addedParticipants) {
-            nameArray.push(participant.fullName);
+
+        // নতুন মেম্বারদের নাম ও মেনশন
+        for (let participant of logMessageData.addedParticipants) {
+            newMemberNames.push(participant.fullName);
             mentions.push({ tag: participant.fullName, id: participant.userFbId });
         }
 
-        const welcomeMessage = `🥰 𝙰𝚂𝚂𝙰𝙻𝙰𝙼𝚄𝙰𝙻𝙰𝙸𝙺𝚄𝙼 @ ${nameArray.join(', ')} 👇
+        // যে অ্যাড করেছে তার ইনফো
+        const userInfo = await api.getUserInfo(author);
+        const adderName = userInfo[author].name;
+        mentions.push({ tag: adderName, id: author });
 
-𝙶𝚛𝚘𝚞𝚙😊
-• 𝙸 𝙷𝚘𝚙𝚎 𝚈𝚘𝚞 𝚆𝚒𝚕𝚕 𝚏𝚘𝚕𝚕𝚘𝚠 𝙾𝚞𝚛 𝙶𝚛𝚘𝚞𝚙 𝚁𝚞𝚕𝚎𝚜
-• !𝚛𝚞𝚕𝚎𝚜 𝚏𝚘𝚛 𝙶𝚛𝚘𝚞𝚙 𝚛𝚞𝚕𝚎𝚜
-• !𝚑𝚎𝚕𝚙 𝙵𝚘𝚛 𝚊𝚕𝚕 𝙲𝚘𝚖𝚖𝚊𝚗𝚍𝚜
+        // গ্রুপের ইনফো
+        const threadInfo = await api.getThreadInfo(threadID);
+        const threadName = threadInfo.threadName || "This Group";
 
-• 𝚈𝚘𝚞 𝙰𝚛𝚎 𝚃𝚑𝚎 (01)st 𝙼𝚎𝚖𝚋𝚎𝚛 𝚒𝚗 𝙾𝚞𝚛 𝙶𝚛𝚘𝚞𝚙
-• 𝙰𝚍𝚍𝚎𝚍 𝙱𝚢:👇
-            👇
-     𓊈𒆜laden 𒆜𓊉✅`;
+        // ফাইনাল মেসেজ
+        const message = `🥰 𝙰𝚂𝚂𝙰𝙻𝙰𝙼𝚄𝙰𝙻𝙰𝙸𝙺𝚄𝙼 @${newMemberNames.join(', ')} 👋
+
+𝚆𝚎𝚕𝚌𝚘𝚖𝚎 𝚃𝚘 𝙾𝚞𝚛 𝙶𝚛𝚘𝚞𝚙: 『 ${threadName} 』😊
+
+• 𝙸 𝙷𝚘𝚙𝚎 𝚈𝚘𝚞 𝚆𝚒𝚕𝚕 𝙵𝚘𝚕𝚕𝚘𝚠 𝙶𝚛𝚘𝚞𝚙 𝚁𝚞𝚕𝚎𝚜
+• !rules — 𝙵𝚘𝚛 𝙶𝚛𝚘𝚞𝚙 𝚁𝚞𝚕𝚎𝚜
+• !help — 𝙵𝚘𝚛 𝙰𝚕𝚕 𝙲𝚘𝚖𝚖𝚊𝚗𝚍𝚜
+
+🫰 𝙰𝚍𝚍𝚎𝚍 𝙱𝚢: @${adderName}`;
 
         return api.sendMessage({
-            body: welcomeMessage,
+            body: message,
             mentions: mentions
         }, threadID);
 
     } catch (err) {
-        console.log(err);
+        console.error(err);
     }
 };
